@@ -134,6 +134,11 @@
     text-transform: uppercase; color: var(--elim); border: 1px solid var(--elim);
     padding: 2px 6px; vertical-align: middle;
   }
+  .team-row .votes-badge{
+    display:inline-block; margin-left:8px; font-size: 9px; font-weight:700; letter-spacing:0.5px;
+    text-transform: uppercase; color: var(--muted); border: 1px solid var(--line);
+    padding: 2px 6px; vertical-align: middle;
+  }
   .team-row svg{ display:block; margin-top: 6px; }
   .empty-note{ color: var(--muted); font-size: 12px; font-style: italic; padding: 10px 0; }
 
@@ -149,7 +154,7 @@
 
   <div class="hero">
     <h1>SURVIVOR FANTASY</h1>
-    <div class="sub">Outplay. Outlast. Win.</div>
+    <div class="sub">Would be a real shame if Rosche was voted out</div>
   </div>
 
   <div class="panel" id="viewPanel">
@@ -172,29 +177,30 @@
 <script>
 const LEAGUE_ID = '1402753007057145856';
 
-// Hardcoded from rosters + users endpoints.
+// Hardcoded from rosters + users endpoints. ownerId lets the site check
+// Sleeper live for renamed teams (see loadLiveTeamNames below).
 const TEAMS = [
-  { rosterId: 1,  teamName: 'Kempter',                        ownerName: 'Kempter' },
-  { rosterId: 2,  teamName: 'callgor',                         ownerName: 'callgor' },
-  { rosterId: 3,  teamName: 'Ericewittaspice10',               ownerName: 'Ericewittaspice10' },
-  { rosterId: 4,  teamName: 'willdvincent',                    ownerName: 'willdvincent' },
-  { rosterId: 5,  teamName: 'drewt1226',                       ownerName: 'drewt1226' },
-  { rosterId: 6,  teamName: 'BigFreeze59',                     ownerName: 'BigFreeze59' },
-  { rosterId: 7,  teamName: 'Man Myth Legend rizgod',          ownerName: 'tburk11' },
-  { rosterId: 8,  teamName: 'Camryn Allysa Floyd',             ownerName: 'wrosche' },
-  { rosterId: 9,  teamName: 'nbelknap12',                      ownerName: 'nbelknap12' },
-  { rosterId: 10, teamName: 'Boston Rob Gronkowski',           ownerName: 'QBSeth' },
-  { rosterId: 11, teamName: 'Tanzims',                         ownerName: 'Tanzims' },
-  { rosterId: 12, teamName: 'GerberBabyy',                     ownerName: 'GerberBabyy' },
-  { rosterId: 13, teamName: 'Jeff Probst',                     ownerName: 'Cwillbrand' },
-  { rosterId: 14, teamName: 'partypatty',                      ownerName: 'partypatty' },
-  { rosterId: 15, teamName: 'George Rosche',                   ownerName: 'Swbix' },
-  { rosterId: 16, teamName: "Don't Get Nixed",                 ownerName: 'jonahmwilhelm' },
-  { rosterId: 17, teamName: 'owenchilly',                      ownerName: 'owenchilly' },
-  { rosterId: 18, teamName: 'PapaSpang',                       ownerName: 'PapaSpang' },
-  { rosterId: 19, teamName: 'Carson Beck Sole Survivor',       ownerName: 'CTWENGER' },
-  { rosterId: 20, teamName: 'Daddy Devens',                    ownerName: 'nkoppert' },
-  { rosterId: 21, teamName: 'jackbeast2007',                   ownerName: 'jackbeast2007' },
+  { rosterId: 1,  teamName: 'Kempter',                        ownerName: 'Kempter',                ownerId: '871464387993583616' },
+  { rosterId: 2,  teamName: 'callgor',                         ownerName: 'callgor',                ownerId: '1136684797062938624' },
+  { rosterId: 3,  teamName: 'Ericewittaspice10',               ownerName: 'Ericewittaspice10',      ownerId: '998676790321258496' },
+  { rosterId: 4,  teamName: 'willdvincent',                    ownerName: 'willdvincent',           ownerId: '738515538455928832' },
+  { rosterId: 5,  teamName: 'drewt1226',                       ownerName: 'drewt1226',              ownerId: '1130304589762297856' },
+  { rosterId: 6,  teamName: 'BigFreeze59',                     ownerName: 'BigFreeze59',            ownerId: '605238579488182272' },
+  { rosterId: 7,  teamName: 'Man Myth Legend rizgod',          ownerName: 'tburk11',                ownerId: '856206228391583744' },
+  { rosterId: 8,  teamName: 'Camryn Allysa Floyd',             ownerName: 'wrosche',                ownerId: '1130345400600346624' },
+  { rosterId: 9,  teamName: 'nbelknap12',                      ownerName: 'nbelknap12',             ownerId: '862486837028093952' },
+  { rosterId: 10, teamName: 'Boston Rob Gronkowski',           ownerName: 'QBSeth',                 ownerId: '871099285750620160' },
+  { rosterId: 11, teamName: 'Tanzims',                         ownerName: 'Tanzims',                ownerId: '568955740936044544' },
+  { rosterId: 12, teamName: 'GerberBabyy',                     ownerName: 'GerberBabyy',            ownerId: '1099094063304884224' },
+  { rosterId: 13, teamName: 'Jeff Probst',                     ownerName: 'Cwillbrand',             ownerId: '1004208886255022080' },
+  { rosterId: 14, teamName: 'partypatty',                      ownerName: 'partypatty',             ownerId: '343502697690955776' },
+  { rosterId: 15, teamName: 'George Rosche',                   ownerName: 'Swbix',                  ownerId: '740659900501397504' },
+  { rosterId: 16, teamName: "Don't Get Nixed",                 ownerName: 'jonahmwilhelm',          ownerId: '1257481332645171200' },
+  { rosterId: 17, teamName: 'owenchilly',                      ownerName: 'owenchilly',             ownerId: '992660870238904320' },
+  { rosterId: 18, teamName: 'PapaSpang',                       ownerName: 'PapaSpang',              ownerId: '464570477046657024' },
+  { rosterId: 19, teamName: 'Carson Beck Sole Survivor',       ownerName: 'CTWENGER',               ownerId: '864702590355681280' },
+  { rosterId: 20, teamName: 'Daddy Devens',                    ownerName: 'nkoppert',               ownerId: '1268368677560909824' },
+  { rosterId: 21, teamName: 'jackbeast2007',                   ownerName: 'jackbeast2007',          ownerId: '996968108059402240' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -235,6 +241,15 @@ const DEFAULT_GROUP_OF = {
 // ---------------------------------------------------------------------------
 const ELIMINATED_WEEK = {
   "16": 1   // Don't Get Nixed — voted out week 1
+};
+
+// ---------------------------------------------------------------------------
+// TRIBAL COUNCIL VOTES — how many votes each roster received, by week. Only
+// rosters that received at least one vote need an entry. Shown as a small
+// label next to their name when that week is selected.
+// ---------------------------------------------------------------------------
+const VOTES = {
+  1: { "16": 6, "4": 1 }
 };
 
 // ---------------------------------------------------------------------------
@@ -282,11 +297,43 @@ let viewingWeek = null;    // the single week currently displayed
 const HARDCODED_WEEK_NUMS = Object.keys(HARDCODED_WEEKS).map(Number);
 const ACTIVE_WEEK = HARDCODED_WEEK_NUMS.length ? Math.max(...HARDCODED_WEEK_NUMS) + 1 : 1;
 
+let liveTeamNames = {}; // rosterId -> team name, only set if it differs from the hardcoded one
+
 const $ = id => document.getElementById(id);
 
 function setStatus(el, msg, cls){
   el.textContent = msg || '';
   el.className = 'status' + (cls ? ' ' + cls : '');
+}
+
+function displayTeamName(t){
+  return liveTeamNames[t.rosterId] || t.teamName;
+}
+
+// Checks Sleeper for each owner's current team_name and uses it if the
+// person has renamed their team since we hardcoded TEAMS above.
+async function loadLiveTeamNames(){
+  try{
+    const res = await fetch(`https://api.sleeper.app/v1/league/${LEAGUE_ID}/users`);
+    if(!res.ok) return;
+    const users = await res.json();
+    if(!Array.isArray(users)) return;
+
+    const nameByOwnerId = {};
+    users.forEach(u => {
+      const teamName = u.metadata && u.metadata.team_name;
+      if(teamName) nameByOwnerId[u.user_id] = teamName;
+    });
+
+    TEAMS.forEach(t => {
+      const live = nameByOwnerId[t.ownerId];
+      if(live && live !== t.teamName) liveTeamNames[t.rosterId] = live;
+    });
+
+    renderAssignAndGroups();
+  }catch(e){
+    // if this fails, we just keep showing the hardcoded names — no big deal
+  }
 }
 
 // A team is active in a tribe for a given week if it hasn't been eliminated
@@ -308,6 +355,7 @@ function init(){
   renderAssignAndGroups();
 
   loadActiveWeek();
+  loadLiveTeamNames();
 }
 
 // The dropdown always offers every hardcoded week plus the active week
@@ -443,17 +491,21 @@ function renderAssignAndGroups(){
           const votedOutBadge = ELIMINATED_WEEK[t.rosterId] === viewingWeek
             ? '<span class="voted-out-badge">Voted Out</span>'
             : '';
+          const votes = VOTES[viewingWeek] ? VOTES[viewingWeek][t.rosterId] : undefined;
+          const votesBadge = votes !== undefined
+            ? `<span class="votes-badge">${votes} vote${votes === 1 ? '' : 's'}</span>`
+            : '';
           if(t.weekScore === undefined){
             row.innerHTML = `
               <div class="top">
-                <div><div class="tname">${escapeHtml(t.teamName)}${votedOutBadge}</div><div class="towner">${escapeHtml(t.ownerName)}</div></div>
+                <div><div class="tname">${escapeHtml(displayTeamName(t))}${votedOutBadge}${votesBadge}</div><div class="towner">${escapeHtml(t.ownerName)}</div></div>
                 <div class="tavg">--</div>
               </div>
             `;
           }else{
             row.innerHTML = `
               <div class="top">
-                <div><div class="tname">${escapeHtml(t.teamName)}${votedOutBadge}</div><div class="towner">${escapeHtml(t.ownerName)}</div></div>
+                <div><div class="tname">${escapeHtml(displayTeamName(t))}${votedOutBadge}${votesBadge}</div><div class="towner">${escapeHtml(t.ownerName)}</div></div>
                 <div class="tavg">${t.weekScore.toFixed(1)}</div>
               </div>
               ${t.history.length > 1 ? sparkline(t.history) : ''}
@@ -472,7 +524,7 @@ function renderAssignAndGroups(){
   elimTeams.forEach(t => {
     const tag = document.createElement('div');
     tag.className = 'elim-tag';
-    tag.innerHTML = `<span class="tname">${escapeHtml(t.teamName)}</span><span class="towner">${escapeHtml(t.ownerName)}</span>`;
+    tag.innerHTML = `<span class="tname">${escapeHtml(displayTeamName(t))}</span><span class="towner">${escapeHtml(t.ownerName)}</span>`;
     elimList.appendChild(tag);
   });
 }
