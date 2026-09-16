@@ -129,6 +129,11 @@
   .team-row .towner{ font-size: 11px; color: var(--muted); }
   .team-row .tavg{ font-size: 15px; font-weight:700; }
   .team-row .tweeks{ font-size: 10px; color: var(--muted); }
+  .team-row .voted-out-badge{
+    display:inline-block; margin-left:8px; font-size: 9px; font-weight:700; letter-spacing:0.5px;
+    text-transform: uppercase; color: var(--elim); border: 1px solid var(--elim);
+    padding: 2px 6px; vertical-align: middle;
+  }
   .team-row svg{ display:block; margin-top: 6px; }
   .empty-note{ color: var(--muted); font-size: 12px; font-style: italic; padding: 10px 0; }
 
@@ -222,27 +227,60 @@ const DEFAULT_GROUP_OF = {
 };
 
 // ---------------------------------------------------------------------------
+// ELIMINATIONS — the week number here is the LAST week that team was still
+// active (i.e. the week they got voted out after). They'll keep showing up
+// under their tribe if that week or an earlier one is selected, but from the
+// following week on they drop out of every tribe. They always appear in the
+// Eliminated panel below regardless of which week is selected.
+// ---------------------------------------------------------------------------
+const ELIMINATED_WEEK = {
+  "16": 1   // Don't Get Nixed — voted out week 1
+};
+
+// ---------------------------------------------------------------------------
 // PAST WEEKS — hardcode completed weeks here so the site doesn't need to
 // re-fetch history from Sleeper every load. Format matches Sleeper's own
 // data: each week number maps to { rosterId: points }.
 // The site automatically fetches whichever week comes right after the
 // highest one listed here and treats that as the "active" week — so you
 // only ever need to add finished weeks, never the current one.
-//
-// Example:
-// const HARDCODED_WEEKS = {
-//   1: { "1": 104.2, "2": 96.5, "3": 110.8, ... },
-//   2: { "1": 98.0,  "2": 101.2, "3": 88.4, ... }
-// };
 // ---------------------------------------------------------------------------
 const HARDCODED_WEEKS = {
-
+  1: {
+    "1": 131.98,
+    "2": 102.62,
+    "3": 101.1,
+    "4": 91.82,
+    "5": 94.2,
+    "6": 122.66,
+    "7": 145.12,
+    "8": 84.86,
+    "9": 105.84,
+    "10": 109.26,
+    "11": 87.16,
+    "12": 122.4,
+    "13": 102.86,
+    "14": 72.84,
+    "15": 50.62,
+    "16": 57.76,
+    "17": 82.6,
+    "18": 125.44,
+    "19": 91.54,
+    "20": 136.14,
+    "21": 100.04
+  }
 };
 
 let weeksData = { ...HARDCODED_WEEKS }; // weekNum -> { rosterId: points }
 let groupOf = { ...DEFAULT_GROUP_OF };
 let groupNames = [ ...DEFAULT_GROUP_NAMES ];
 let viewingWeek = null;    // the single week currently displayed
+
+// The active week is always whichever week comes right after your highest
+// hardcoded week — right now that's week 2. Once you hardcode week 2's
+// results, this automatically becomes week 3, and so on.
+const HARDCODED_WEEK_NUMS = Object.keys(HARDCODED_WEEKS).map(Number);
+const ACTIVE_WEEK = HARDCODED_WEEK_NUMS.length ? Math.max(...HARDCODED_WEEK_NUMS) + 1 : 1;
 
 const $ = id => document.getElementById(id);
 
@@ -251,34 +289,42 @@ function setStatus(el, msg, cls){
   el.className = 'status' + (cls ? ' ' + cls : '');
 }
 
+// A team is active in a tribe for a given week if it hasn't been eliminated
+// yet as of that week (or was never eliminated at all).
+function isActiveInWeek(rosterId, week){
+  const elimAfter = ELIMINATED_WEEK[rosterId];
+  if(elimAfter === undefined) return true;
+  if(week === null) return true;
+  return week <= elimAfter;
+}
+
 function init(){
   TEAMS.forEach((t, i) => {
     if(!(t.rosterId in groupOf)) groupOf[t.rosterId] = i % 3;
   });
 
-  const loadedWeeks = Object.keys(weeksData).map(Number).sort((a,b) => a-b);
-  viewingWeek = loadedWeeks.length ? loadedWeeks[loadedWeeks.length - 1] : null;
+  viewingWeek = ACTIVE_WEEK; // default to the active week, not just whatever last scored
   populateViewWeekSelect();
   renderAssignAndGroups();
 
   loadActiveWeek();
 }
 
+// The dropdown always offers every hardcoded week plus the active week
+// (even before it has scores), plus anything auto-fetched beyond that.
+function dropdownWeeks(){
+  const s = new Set([...HARDCODED_WEEK_NUMS, ACTIVE_WEEK, ...Object.keys(weeksData).map(Number)]);
+  return Array.from(s).sort((a,b) => a-b);
+}
+
 function populateViewWeekSelect(){
   const sel = $('viewWeek');
-  const loadedWeeks = Object.keys(weeksData).map(Number).sort((a,b) => a-b);
+  const weeks = dropdownWeeks();
   sel.innerHTML = '';
-  if(loadedWeeks.length === 0){
-    const opt = document.createElement('option');
-    opt.textContent = 'No weeks saved yet';
-    opt.value = '';
-    sel.appendChild(opt);
-    return;
-  }
-  loadedWeeks.forEach(w => {
+  weeks.forEach(w => {
     const opt = document.createElement('option');
     opt.value = w;
-    opt.textContent = `Week ${w}`;
+    opt.textContent = w === ACTIVE_WEEK ? `Week ${w} (Active)` : `Week ${w}`;
     if(w === viewingWeek) opt.selected = true;
     sel.appendChild(opt);
   });
@@ -295,10 +341,7 @@ function applyWeekData(weekNum, matchups){
 }
 
 async function loadActiveWeek(){
-  const hardcodedWeeks = Object.keys(HARDCODED_WEEKS).map(Number);
-  const startWeek = hardcodedWeeks.length ? Math.max(...hardcodedWeeks) + 1 : 1;
-
-  for(let week = startWeek; week <= 18; week++){
+  for(let week = ACTIVE_WEEK; week <= 18; week++){
     try{
       const res = await fetch(`https://api.sleeper.app/v1/league/${LEAGUE_ID}/matchups/${week}`);
       if(!res.ok) continue;
@@ -312,8 +355,8 @@ async function loadActiveWeek(){
     }
   }
 
-  const loadedWeeks = Object.keys(weeksData).map(Number).sort((a,b) => a-b);
-  viewingWeek = loadedWeeks.length ? loadedWeeks[loadedWeeks.length - 1] : null;
+  // Refresh the dropdown (in case new weeks turned up) and re-render, but
+  // never yank the view away from the active week once it's loaded.
   populateViewWeekSelect();
   renderAssignAndGroups();
 }
@@ -364,11 +407,13 @@ function renderAssignAndGroups(){
     name.textContent = groupNames[gi];
     card.appendChild(name);
 
-    const groupTeams = TEAMS.filter(t => groupOf[t.rosterId] === gi).map(t => ({
-      ...t,
-      weekScore: teamScoreForViewingWeek(t.rosterId),
-      history: teamScores(t.rosterId),
-    }));
+    const groupTeams = TEAMS
+      .filter(t => groupOf[t.rosterId] === gi && isActiveInWeek(t.rosterId, viewingWeek))
+      .map(t => ({
+        ...t,
+        weekScore: teamScoreForViewingWeek(t.rosterId),
+        history: teamScores(t.rosterId),
+      }));
     const withScores = groupTeams.filter(t => t.weekScore !== undefined);
 
     const avgDiv = document.createElement('div');
@@ -395,22 +440,23 @@ function renderAssignAndGroups(){
         .forEach(t => {
           const row = document.createElement('div');
           row.className = 'team-row';
+          const votedOutBadge = ELIMINATED_WEEK[t.rosterId] === viewingWeek
+            ? '<span class="voted-out-badge">Voted Out</span>'
+            : '';
           if(t.weekScore === undefined){
             row.innerHTML = `
               <div class="top">
-                <div><div class="tname">${escapeHtml(t.teamName)}</div><div class="towner">${escapeHtml(t.ownerName)}</div></div>
+                <div><div class="tname">${escapeHtml(t.teamName)}${votedOutBadge}</div><div class="towner">${escapeHtml(t.ownerName)}</div></div>
                 <div class="tavg">--</div>
               </div>
-              <div class="tweeks">no score for this week</div>
             `;
           }else{
             row.innerHTML = `
               <div class="top">
-                <div><div class="tname">${escapeHtml(t.teamName)}</div><div class="towner">${escapeHtml(t.ownerName)}</div></div>
+                <div><div class="tname">${escapeHtml(t.teamName)}${votedOutBadge}</div><div class="towner">${escapeHtml(t.ownerName)}</div></div>
                 <div class="tavg">${t.weekScore.toFixed(1)}</div>
               </div>
               ${t.history.length > 1 ? sparkline(t.history) : ''}
-              <div class="tweeks">week ${viewingWeek} · ${t.history.length} week${t.history.length===1?'':'s'} on file</div>
             `;
           }
           card.appendChild(row);
@@ -421,7 +467,7 @@ function renderAssignAndGroups(){
   }
 
   const elimList = $('elimList');
-  const elimTeams = TEAMS.filter(t => groupOf[t.rosterId] === 3);
+  const elimTeams = TEAMS.filter(t => ELIMINATED_WEEK[t.rosterId] !== undefined);
   elimList.innerHTML = elimTeams.length ? '' : '<div class="empty-note">No teams eliminated yet.</div>';
   elimTeams.forEach(t => {
     const tag = document.createElement('div');
