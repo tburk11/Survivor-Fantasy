@@ -139,7 +139,6 @@
     text-transform: uppercase; color: var(--muted); border: 1px solid var(--line);
     padding: 2px 6px; vertical-align: middle;
   }
-  .team-row svg{ display:block; margin-top: 6px; }
   .empty-note{ color: var(--muted); font-size: 12px; font-style: italic; padding: 10px 0; }
 
   .elim-panel h2{ color: var(--elim); }
@@ -424,19 +423,6 @@ function teamScoreForViewingWeek(rosterId){
 
 function avg(arr){ return arr.reduce((a,b) => a+b, 0) / arr.length; }
 
-function sparkline(scores){
-  const w = 140, h = 30, pad = 3;
-  const min = Math.min(...scores), max = Math.max(...scores);
-  const range = (max - min) || 1;
-  const stepX = scores.length > 1 ? (w - pad*2) / (scores.length - 1) : 0;
-  const pts = scores.map((s, i) => {
-    const x = pad + i * stepX;
-    const y = h - pad - ((s - min) / range) * (h - pad*2);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
-  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7"/></svg>`;
-}
-
 function escapeHtml(str){
   const div = document.createElement('div');
   div.textContent = str || '';
@@ -460,7 +446,6 @@ function renderAssignAndGroups(){
       .map(t => ({
         ...t,
         weekScore: teamScoreForViewingWeek(t.rosterId),
-        history: teamScores(t.rosterId),
       }));
     const withScores = groupTeams.filter(t => t.weekScore !== undefined);
 
@@ -508,7 +493,6 @@ function renderAssignAndGroups(){
                 <div><div class="tname">${escapeHtml(displayTeamName(t))}${votedOutBadge}${votesBadge}</div><div class="towner">${escapeHtml(t.ownerName)}</div></div>
                 <div class="tavg">${t.weekScore.toFixed(1)}</div>
               </div>
-              ${t.history.length > 1 ? sparkline(t.history) : ''}
             `;
           }
           card.appendChild(row);
