@@ -121,7 +121,8 @@
   .group-card.gi0 .gavg{ color: var(--g1); }
   .group-card.gi1 .gavg{ color: var(--g2); }
   .group-card.gi2 .gavg{ color: var(--g3); }
-  .group-card .gavg-lbl{ color: var(--muted); font-size: 11px; margin-bottom: 14px; }
+  .group-card .gavg-lbl{ color: var(--muted); font-size: 11px; margin-bottom: 6px; }
+  .group-card .gproj{ color: var(--muted); font-size: 11px; margin-bottom: 14px; font-style: italic; }
   .team-row{ padding: 10px 0; border-top: 1px dashed var(--line); }
   .team-row:first-of-type{ border-top: none; }
   .team-row .top{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
@@ -253,6 +254,17 @@ const VOTES = {
   1: { "16": 6, "4": 1 },
   2: { "12": 5 },
   3: { "2": 4, "14": 2 }
+};
+
+// ---------------------------------------------------------------------------
+// TRIBE PROJECTIONS — a one-time static projected average for a tribe going
+// into a given week (e.g. pulled from Sleeper's own weekly projections
+// before games start). Indexed by tribe [0, 1, 2]. Optional — only weeks
+// listed here show a projection; leave a week out once its real scores are
+// hardcoded above.
+// ---------------------------------------------------------------------------
+const TRIBE_PROJECTIONS = {
+  4: [97.41, 101.75, 103.36]
 };
 
 // ---------------------------------------------------------------------------
@@ -510,6 +522,13 @@ function renderAssignAndGroups(){
       ? `avg score · week ${viewingWeek} · ${groupTeams.length} team${groupTeams.length===1?'':'s'}`
       : `no week selected · ${groupTeams.length} team${groupTeams.length===1?'':'s'}`;
     card.appendChild(lbl);
+
+    if(TRIBE_PROJECTIONS[viewingWeek]){
+      const projDiv = document.createElement('div');
+      projDiv.className = 'gproj';
+      projDiv.textContent = `projected: ${TRIBE_PROJECTIONS[viewingWeek][gi].toFixed(1)}`;
+      card.appendChild(projDiv);
+    }
 
     if(groupTeams.length === 0){
       const note = document.createElement('div');
