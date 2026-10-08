@@ -103,7 +103,7 @@
   .chip.on3{ background: var(--elim); color:#EFE1C0; border-color: var(--elim); }
   .chip.elim-chip{ opacity: 0.8; }
 
-  .groups{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .groups{ display:grid; grid-template-columns: repeat(var(--tribe-count, 3), 1fr); gap: 18px; }
   @media (max-width: 800px){ .groups{ grid-template-columns: 1fr; } }
   .group-card{
     background: var(--panel-light); border-top: 4px solid var(--muted); padding: 20px;
@@ -204,33 +204,43 @@ const TEAMS = [
 ];
 
 // ---------------------------------------------------------------------------
-// TRIBE CONFIG — edit these two constants and re-deploy to update tribes for
-// everyone.
+// TRIBE PHASES — the tribe lineup can change over the season (swaps,
+// merges). List each phase in order with the week it starts on; the site
+// uses whichever phase's fromWeek is the highest one at or below the week
+// being viewed. Add a new phase here (don't edit old ones) whenever tribes
+// get reshuffled, and re-deploy.
 // ---------------------------------------------------------------------------
-const DEFAULT_GROUP_NAMES = ["Tribe Called Quest","Sukondi","Pig Pen Wannabes"];
-const DEFAULT_GROUP_OF = {
-  "1": 2,
-  "2": 1,
-  "3": 0,
-  "4": 2,
-  "5": 2,
-  "6": 1,
-  "7": 1,
-  "8": 2,
-  "9": 0,
-  "10": 0,
-  "11": 1,
-  "12": 1,
-  "13": 0,
-  "14": 1,
-  "15": 0,
-  "16": 2,
-  "17": 0,
-  "18": 2,
-  "19": 2,
-  "20": 0,
-  "21": 1
-};
+const GROUP_PHASES = [
+  {
+    fromWeek: 1,
+    names: ["Tribe Called Quest", "Sukondi", "Pig Pen Wannabes"],
+    groupOf: {
+      "1": 2, "2": 1, "3": 0, "4": 2, "5": 2, "6": 1, "7": 1, "8": 2, "9": 0,
+      "10": 0, "11": 1, "12": 1, "13": 0, "14": 1, "15": 0, "16": 2, "17": 0,
+      "18": 2, "19": 2, "20": 0, "21": 1
+    }
+  },
+  {
+    // Week 5 swap. Tribe 1: Kempter, nbelknap12, BigFreeze59, tburk11,
+    // PapaSpang, Tanzims, wrosche, Swbix. Tribe 2: everyone else still active.
+    fromWeek: 5,
+    names: ["Tribe 1", "Tribe 2"],
+    groupOf: {
+      "1": 0, "2": 1, "3": 1, "4": 1, "5": 1, "6": 0, "7": 0, "8": 0, "9": 0,
+      "10": 1, "11": 0, "12": 1, "13": 1, "14": 1, "15": 0, "16": 1, "17": 1,
+      "18": 0, "19": 1, "20": 1, "21": 1
+    }
+  }
+];
+
+function phaseForWeek(week){
+  const w = week === null ? GROUP_PHASES[0].fromWeek : week;
+  let phase = GROUP_PHASES[0];
+  for(const p of GROUP_PHASES){
+    if(p.fromWeek <= w) phase = p;
+  }
+  return phase;
+}
 
 // ---------------------------------------------------------------------------
 // ELIMINATIONS — the week number here is the LAST week that team was still
@@ -242,7 +252,9 @@ const DEFAULT_GROUP_OF = {
 const ELIMINATED_WEEK = {
   "16": 1,  // Don't Get Nixed — voted out week 1
   "12": 2,  // GerberBabyy — voted out week 2
-  "2": 3    // callgor — voted out week 3
+  "2": 3,   // callgor — voted out week 3
+  "19": 4,  // CTWENGER (Carson Beck Sole Survivor) — voted out week 4
+  "17": 4   // owenchilly — voted out week 4
 };
 
 // ---------------------------------------------------------------------------
@@ -253,20 +265,18 @@ const ELIMINATED_WEEK = {
 const VOTES = {
   1: { "16": 6, "4": 1 },
   2: { "12": 5 },
-  3: { "2": 4, "14": 2 }
+  3: { "2": 4, "14": 2 },
+  4: { "19": 5, "17": 5, "18": 1, "15": 1, "10": 1 }
 };
 
 // ---------------------------------------------------------------------------
 // TRIBE PROJECTIONS — a one-time static projected average for a tribe going
 // into a given week (e.g. pulled from Sleeper's own weekly projections
-// before games start). Indexed by tribe [0, 1, 2]. Optional — only weeks
-// listed here show a projection; leave a week out once its real scores are
-// hardcoded above.
+// before games start). Indexed to match that week's GROUP_PHASES tribe
+// order. Optional — only weeks listed here show a projection; leave a week
+// out once its real scores are hardcoded below.
 // ---------------------------------------------------------------------------
-const TRIBE_PROJECTIONS = {
-  4: [103.15, 118.63, 96.84
-  ]
-};
+const TRIBE_PROJECTIONS = {};
 
 // ---------------------------------------------------------------------------
 // PAST WEEKS — hardcode completed weeks here so the site doesn't need to
@@ -345,17 +355,38 @@ const HARDCODED_WEEKS = {
     "19": 111.38,
     "20": 123.02,
     "21": 113.02
+  },
+  4: {
+    "1": 85.92,
+    "2": 0.0,
+    "3": 80.04,
+    "4": 103.84,
+    "5": 121.82,
+    "6": 197.32,
+    "7": 75.72,
+    "8": 105.22,
+    "9": 136.66,
+    "10": 67.32,
+    "11": 109.96,
+    "12": 0.0,
+    "13": 141.04,
+    "14": 91.06,
+    "15": 92.14,
+    "16": 0.0,
+    "17": 77.54,
+    "18": 58.54,
+    "19": 103.2,
+    "20": 131.7,
+    "21": 116.96
   }
 };
 
 let weeksData = { ...HARDCODED_WEEKS }; // weekNum -> { rosterId: points }
-let groupOf = { ...DEFAULT_GROUP_OF };
-let groupNames = [ ...DEFAULT_GROUP_NAMES ];
 let viewingWeek = null;    // the single week currently displayed
 
 // The active week is always whichever week comes right after your highest
-// hardcoded week — right now that's week 2. Once you hardcode week 2's
-// results, this automatically becomes week 3, and so on.
+// hardcoded week — right now that's week 4. Once you hardcode week 4's
+// results, this automatically becomes week 5, and so on.
 const HARDCODED_WEEK_NUMS = Object.keys(HARDCODED_WEEKS).map(Number);
 const ACTIVE_WEEK = HARDCODED_WEEK_NUMS.length ? Math.max(...HARDCODED_WEEK_NUMS) + 1 : 1;
 
@@ -408,10 +439,6 @@ function isActiveInWeek(rosterId, week){
 }
 
 function init(){
-  TEAMS.forEach((t, i) => {
-    if(!(t.rosterId in groupOf)) groupOf[t.rosterId] = i % 3;
-  });
-
   viewingWeek = ACTIVE_WEEK; // default to the active week, not just whatever last scored
   populateViewWeekSelect();
   renderAssignAndGroups();
@@ -493,9 +520,15 @@ function escapeHtml(str){
 }
 
 function renderAssignAndGroups(){
+  const phase = phaseForWeek(viewingWeek);
+  const groupNames = phase.names;
+  const groupOf = phase.groupOf;
+  const tribeCount = groupNames.length;
+
   const groupsSection = $('groupsSection');
+  groupsSection.style.setProperty('--tribe-count', tribeCount);
   groupsSection.innerHTML = '';
-  for(let gi = 0; gi < 3; gi++){
+  for(let gi = 0; gi < tribeCount; gi++){
     const card = document.createElement('div');
     card.className = `group-card gi${gi}`;
 
@@ -524,7 +557,7 @@ function renderAssignAndGroups(){
       : `no week selected · ${groupTeams.length} team${groupTeams.length===1?'':'s'}`;
     card.appendChild(lbl);
 
-    if(TRIBE_PROJECTIONS[viewingWeek]){
+    if(TRIBE_PROJECTIONS[viewingWeek] && TRIBE_PROJECTIONS[viewingWeek][gi] !== undefined){
       const projDiv = document.createElement('div');
       projDiv.className = 'gproj';
       projDiv.textContent = `projected: ${TRIBE_PROJECTIONS[viewingWeek][gi].toFixed(1)}`;
