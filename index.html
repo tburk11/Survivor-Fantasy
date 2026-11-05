@@ -232,6 +232,22 @@
     color: var(--cream); background: var(--ink); border-radius: 3px;
     transform: rotate(2deg); vertical-align: middle;
   }
+  .team-row .immunity-badge{
+    display: inline-block; margin-left: 8px; padding: 1px 8px;
+    font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+    color: #1F4D2B; background: #D9B84A; border: 2px solid #8A6A12; border-radius: 3px;
+    transform: rotate(-2deg); vertical-align: middle;
+  }
+  .team-row:has(.immunity-badge){ background: linear-gradient(90deg, rgba(217,184,74,0.22), transparent 75%); }
+  .immunity-line{
+    position: relative; height: 0; margin: 10px 0 12px;
+    border-top: 3px dashed #8A6A12;
+  }
+  .immunity-line span{
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    padding: 1px 12px; font-size: 13px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #1F4D2B; background: #D9B84A; border: 2px solid #8A6A12; border-radius: 3px;
+  }
   .empty-note{ color: var(--ink-soft); font-size: 16px; font-style: italic; padding: 10px 0; }
 
   /* ---------- eliminated ---------- */
@@ -340,7 +356,7 @@
       <p class="plank-title">Season Scoreboard</p>
       <svg class="ball" viewBox="0 0 60 36" aria-hidden="true"><use href="#ball"/></svg>
     </div>
-    <div class="sub">Projections updated at 9:35am</div>
+    <div class="sub">Welcome to the Merge</div>
   </header>
 
   <section class="plank view-plank" id="viewPanel">
@@ -444,8 +460,24 @@ const GROUP_PHASES = [
       "10": 1, "11": 0, "12": 1, "13": 1, "14": 1, "15": 0, "16": 1, "17": 1,
       "18": 0, "19": 1, "20": 1, "21": 1
     }
+  },
+  {
+    // Week 9 merge: everyone still active is on one tribe.
+    fromWeek: 9,
+    names: ["Merge"],
+    groupOf: {
+      "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 0, "9": 0,
+      "10": 0, "11": 0, "12": 0, "13": 0, "14": 0, "15": 0, "16": 0, "17": 0,
+      "18": 0, "19": 0, "20": 0, "21": 0
+    }
   }
 ];
+
+// ---------------------------------------------------------------------------
+// INDIVIDUAL IMMUNITY — for the weeks listed here, the top N scoring teams
+// of the week get an "Immunity" badge. { week: numberOfImmunitySpots }
+// ---------------------------------------------------------------------------
+const IMMUNITY_SPOTS = { 9: 2 };
 
 function phaseForWeek(week){
   const w = week === null ? GROUP_PHASES[0].fromWeek : week;
@@ -471,7 +503,8 @@ const ELIMINATED_WEEK = {
   "17": 4,  // owenchilly — voted out week 4
   "5": 5,   // drewt1226 — voted out week 5
   "14": 6,  // partypatty — voted out week 6
-  "8": 7    // wrosche — voted out week 7
+  "8": 7,   // wrosche — voted out week 7
+  "21": 8   // jackbeast2007 — voted out week 8
 };
 
 // ---------------------------------------------------------------------------
@@ -486,7 +519,8 @@ const VOTES = {
   4: { "19": 5, "17": 5, "18": 1, "15": 1, "10": 1 },
   5: { "5": 5, "10": 1 },
   6: { "14": 6 },
-  7: { "8": 5, "11": 2, "18": 1 }
+  7: { "8": 5, "11": 2, "18": 1 },
+  8: { "21": 5, "4": 1 }
 };
 
 // ---------------------------------------------------------------------------
@@ -497,7 +531,6 @@ const VOTES = {
 // out once its real scores are hardcoded below.
 // ---------------------------------------------------------------------------
 const TRIBE_PROJECTIONS = {
-  8: [112.8, 112.2]
 };
 
 // ---------------------------------------------------------------------------
@@ -669,6 +702,29 @@ const HARDCODED_WEEKS = {
     "19": 0.0,
     "20": 155.24,
     "21": 110.78
+  },
+  8: {
+    "1": 95.86,
+    "2": 0.0,
+    "3": 99.76,
+    "4": 90.42,
+    "5": 0.0,
+    "6": 161.76,
+    "7": 113.52,
+    "8": 0.0,
+    "9": 72.58,
+    "10": 123.36,
+    "11": 171.58,
+    "12": 0.0,
+    "13": 134.86,
+    "14": 0.0,
+    "15": 107.16,
+    "16": 0.0,
+    "17": 0.0,
+    "18": 85.76,
+    "19": 0.0,
+    "20": 111.8,
+    "21": 114.92
   }
 };
 
@@ -849,6 +905,14 @@ function renderAssignAndGroups(){
         weekScore: teamScoreForViewingWeek(t.rosterId),
       }));
     const withScores = groupTeams.filter(t => t.weekScore !== undefined);
+    const immuneIds = new Set();
+    const spots = IMMUNITY_SPOTS[viewingWeek];
+    if(spots){
+      withScores.filter(t => t.weekScore > 0)
+        .sort((a,b) => b.weekScore - a.weekScore)
+        .slice(0, spots)
+        .forEach(t => immuneIds.add(t.rosterId));
+    }
 
     const avgDiv = document.createElement('div');
     avgDiv.className = 'gavg';
@@ -881,7 +945,7 @@ function renderAssignAndGroups(){
       groupTeams
         .slice()
         .sort((a,b) => (b.weekScore ?? -Infinity) - (a.weekScore ?? -Infinity))
-        .forEach(t => {
+        .forEach((t, idx) => {
           const row = document.createElement('div');
           row.className = 'team-row';
           const votedOutBadge = ELIMINATED_WEEK[t.rosterId] === viewingWeek
@@ -891,22 +955,29 @@ function renderAssignAndGroups(){
           const votesBadge = votes !== undefined
             ? `<span class="votes-badge">${votes} vote${votes === 1 ? '' : 's'}</span>`
             : '';
+          const immBadge = immuneIds.has(t.rosterId) ? '<span class="immunity-badge">Immunity</span>' : '';
           if(t.weekScore === undefined){
             row.innerHTML = `
               <div class="top">
-                <div><div class="tname">${escapeHtml(displayTeamName(t))}${votedOutBadge}${votesBadge}</div><div class="towner">${escapeHtml(t.ownerName)}</div></div>
+                <div><div class="tname">${escapeHtml(displayTeamName(t))}${votedOutBadge}${votesBadge}${immBadge}</div><div class="towner">${escapeHtml(t.ownerName)}</div></div>
                 <div class="tavg">--</div>
               </div>
             `;
           }else{
             row.innerHTML = `
               <div class="top">
-                <div><div class="tname">${escapeHtml(displayTeamName(t))}${votedOutBadge}${votesBadge}</div><div class="towner">${escapeHtml(t.ownerName)}</div></div>
+                <div><div class="tname">${escapeHtml(displayTeamName(t))}${votedOutBadge}${votesBadge}${immBadge}</div><div class="towner">${escapeHtml(t.ownerName)}</div></div>
                 <div class="tavg">${t.weekScore.toFixed(1)}</div>
               </div>
             `;
           }
           roster.appendChild(row);
+          if(spots && idx === spots - 1){
+            const line = document.createElement('div');
+            line.className = 'immunity-line';
+            line.innerHTML = '<span>Immunity</span>';
+            roster.appendChild(line);
+          }
         });
     }
 
